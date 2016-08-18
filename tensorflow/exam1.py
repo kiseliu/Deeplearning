@@ -1,6 +1,8 @@
 import tensorflow as tf
 import numpy as np
 
+# The first part of this code builds the data flow graph.
+
 # Create 100 phony x, y data points in NumPy, y = x * 0.1 + 0.3
 x_data = np.random.rand(100).astype(np.float32)
 y_data = x_data * 0.1 + 0.3
@@ -11,7 +13,6 @@ W = tf.Variable(tf.random_uniform([1], -1.0, 1.0))
 b = tf.Variable(tf.zeros([1]))
 y = W * x_data + b
 
-# The first part of this code builds the data flow graph.
 # Minimize the mean squared errors.
 loss = tf.reduce_mean(tf.square(y - y_data))
 optimizer = tf.train.GradientDescentOptimizer(0.5)
