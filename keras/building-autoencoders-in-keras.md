@@ -161,11 +161,11 @@ For 2D visualization specifically, t-SNE (pronounced "tee-snee") is probably the
 	    ax.get_xaxis().set_visible(False)
 	    ax.get_yaxis().set_visible(False)
 	plt.show()
-注意，由于构建了深度解码器，在单独构建解码器的时候，不能再取最后一层作为解码器了，因为此时最后一层的输入是128维，而此时encoding dim是32维，所以程序会报错，具体可以参考[stack overflow上的回答][2]，开始我也犯了同样的错误。
+注意，由于构建了深度解码器，在单独构建解码器的时候，不能再取最后一层作为解码器了，因为此时最后一层的输入是128维，而此时encoding dim是32维，所以程序会报错，具体可以参考[stack overflow上的回答][4]，开始我也犯了同样的错误。
 最终经过压缩和解压后的图像如下：
 ![](https://github.com/kiseliu/MarkDownPictures/blob/master/dl/%E6%B7%B1%E5%BA%A6%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8.png)
 
 
-[2]:	https://stackoverflow.com/questions/37758496/python-keras-theano-wrong-dimensions-for-deep-autoencoder
+[4]:	https://stackoverflow.com/questions/37758496/python-keras-theano-wrong-dimensions-for-deep-autoencoder
 
 [image-1]:	https://github.com/kiseliu/MarkDownPictures/blob/master/dl/%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8.png
