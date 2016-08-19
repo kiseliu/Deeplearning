@@ -1,9 +1,3 @@
-layout: pages
-title: Building Autoencoders in Keras
-date: 2016-08-16 12:50:35
-categories: Deep Learning
-tags: [autoencoder, keras]
----
 本节，我们将回答关于自编码的一些常见的问题，我们将给出下面几个模型的代码示例：
 - 基于全连接层的简单的自编码器
 - 稀疏自编码器
@@ -29,7 +23,7 @@ tags: [autoencoder, keras]
 
 
 ## What are autoencoders good for?
-自编码器很少用在实际的应用中。In 2012 they briefly found an application in greedy layer-wise pretraining for deep convolutional neural networks [1][1]，但是它很快就过时了，因为我们开始意识到，更好的随机权重初始化方案足以让我们从头开始训练深度网络。在2014年，batch normalization [2] 开始允许更深的网络，从2015年末我们可以使用残差学习随意从头训练深度网络[3]。
+自编码器很少用在实际的应用中。In 2012 they briefly found an application in greedy layer-wise pretraining for deep convolutional neural networks [1]，但是它很快就过时了，因为我们开始意识到，更好的随机权重初始化方案足以让我们从头开始训练深度网络。在2014年，batch normalization [2] 开始允许更深的网络，从2015年末我们可以使用残差学习随意从头训练深度网络[3]。
 
 如今自编码器的两个有趣的实际应用是**数据去噪**(本文后续会说)，和用于**数据可视化的降维**。有了合适的维度和稀疏性限制，自编码器可以学习数据投影，它比PCA或者其它基本的技术更有趣。
 
@@ -172,10 +166,6 @@ For 2D visualization specifically, t-SNE (pronounced "tee-snee") is probably the
 ![](https://github.com/kiseliu/MarkDownPictures/blob/master/dl/%E6%B7%B1%E5%BA%A6%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8.png)
 
 
-
-
-
-[1]:	https://stackoverflow.com/questions/37758496/python-keras-theano-wrong-dimensions-for-deep-autoencoder
 [2]:	https://stackoverflow.com/questions/37758496/python-keras-theano-wrong-dimensions-for-deep-autoencoder
 
 [image-1]:	https://github.com/kiseliu/MarkDownPictures/blob/master/dl/%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8.png
