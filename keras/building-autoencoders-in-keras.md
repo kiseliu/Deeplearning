@@ -96,12 +96,27 @@ For 2D visualization specifically, t-SNE (pronounced "tee-snee") is probably the
 	    ax.get_yaxis().set_visible(False)
 	plt.show()
 最终经过压缩再解压后的图片效果如下：
-![][image-1]   
-如果我们把编码后的经过压缩的图像用matplotlib画出来(也就是可视化提取的特征)如下：
-![](https://github.com/kiseliu/MarkDownPictures/blob/master/dl/%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8%E6%8F%90%E5%8F%96%E7%9A%84%E7%89%B9%E5%BE%81.png)	  
-表示看到之后，只想说什么鬼？
- 
+![][image-1]          
 ## Adding a sparsity constraint on the encoded representations
+在前面的例子中，编码表示只受到隐藏层大小(32)的限制。在这样的情况下，隐藏层做的事情是学习PCA的近似表示。另一种限制表示被压缩的方法是对隐藏层表示的行为加入稀疏性限制，在给定的时刻只有少数的单元被启动。在Keras，可以通过在Dense 层加入 activity_regularizer 做到：_
+	from keras import regularizers
+	
+	encoding_dim = 32
+	
+	input_img = Input(shape=(784,))
+	# add a Dense layer with a L1 activity regularizer
+	encoded = Dense(encoding_dim, activation='relu',
+	                activity_regularizer=regularizers.activity_l1(10e-5))(input_img)
+	decoded = Dense(784, activation='sigmoid')(encoded)
+	
+	autoencoder = Model(input=input_img, output=decoded)
+
+我们让模型训练迭代100次(模型加入正则化更不容易过拟合，并且可以被训练地更久)，结束后训练损失是0.11，测试损失是0.10。这两者的差别主要是因为在训练过程中，被加入到损失中的正则化项(大概有0.01)。
+
+这里是新的可视化结果：
+![](https://github.com/kiseliu/MarkDownPictures/blob/master/dl/%E7%A8%80%E7%96%8F%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8.png)
+
+They look pretty similar to the previous model, the only significant difference being the sparsity of the encoded representations. encoded\_imgs.mean() yields a value 3.33 (over our 10,000 test images), whereas with the previous model the same quantity was 7.30. So our new model yields encoded representations that are twice sparser. 
 
 ## Deep autoencoder
 我们不必限制编码器或者解码器为单层，相反我们可以多叠几层，比如：
@@ -168,8 +183,6 @@ For 2D visualization specifically, t-SNE (pronounced "tee-snee") is probably the
 	    ax.get_yaxis().set_visible(False)
 	plt.show()
 注意，由于构建了深度解码器，在单独构建解码器的时候，不能再取最后一层作为解码器了，因为此时最后一层的输入是128维，而此时encoding dim是32维，所以程序会报错，具体可以参考[stack overflow上的回答][2]，开始我也犯了同样的错误。
-最终经过压缩和解压后的图像如下：
-![](https://github.com/kiseliu/MarkDownPictures/blob/master/dl/%E6%B7%B1%E5%BA%A6%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8.png)
 
 
 
