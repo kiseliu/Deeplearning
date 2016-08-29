@@ -234,7 +234,7 @@ They look pretty similar to the previous model, the only significant difference 
 我们可以在TensorBoard 页面监控训练(通过http://0.0.0.0:6006 网址)：
 
 模型收敛时损失为0.094，比我们前面的模型好得多(主要是因为编码表示的更大的熵能力，128维 vs 32维)。让我们看下重塑的数字：
-! [] (https://github.com/kiseliu/MarkDownPictures/blob/master/dl/%E5%8D%B7%E7%A7%AF%E8%87%AA%E7%BC%96%E7%A0%81.png)
+![][image-4]
 我们也看一下128维的编码表示，这些表示是8x4x4的，所以可以把它们转变成4x32大小，然后用灰度图像展示出来。
 
 ## Application to image denoising
@@ -296,7 +296,7 @@ They look pretty similar to the previous model, the only significant difference 
 	    ax.get_yaxis().set_visible(False)
 	plt.show()
 下面是噪音数字的样子：
-! [] (https://github.com/kiseliu/MarkDownPictures/blob/master/dl/%E5%99%AA%E9%9F%B3%E6%95%B0%E5%AD%97.png)
+![][image-5]
 
 如果你仔细看仍然能认出他们，但是很难。我们的自编码器能够恢复原始的数字吗？让我们看看。
 
@@ -383,3 +383,5 @@ They look pretty similar to the previous model, the only significant difference 
 [image-1]:	https://github.com/kiseliu/MarkDownPictures/blob/master/dl/%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8.png
 [image-2]:	https://github.com/kiseliu/MarkDownPictures/blob/master/dl/%E7%A8%80%E7%96%8F%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8.png
 [image-3]:	https://github.com/kiseliu/MarkDownPictures/blob/master/dl/%E6%B7%B1%E5%BA%A6%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8.png
+[image-4]:	https://github.com/kiseliu/MarkDownPictures/blob/master/dl/%E5%8D%B7%E7%A7%AF%E8%87%AA%E7%BC%96%E7%A0%81.png
+[image-5]:	https://github.com/kiseliu/MarkDownPictures/blob/master/dl/%E5%99%AA%E9%9F%B3%E6%95%B0%E5%AD%97.png
