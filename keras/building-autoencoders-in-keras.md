@@ -23,7 +23,7 @@
 
 
 ## What are autoencoders good for?
-自编码器很少用在实际的应用中。In 2012 they briefly found an application in greedy layer-wise pretraining for deep convolutional neural networks [1]，但是它很快就过时了，因为我们开始意识到，更好的随机权重初始化方案足以让我们从头开始训练深度网络。在2014年，batch normalization [2] 开始允许更深的网络，从2015年末我们可以使用残差学习随意从头训练深度网络[3]。
+自编码器很少用在实际的应用中。In 2012 they briefly found an application in greedy layer-wise pretraining for deep convolutional neural networks [1][1]，但是它很快就过时了，因为我们开始意识到，更好的随机权重初始化方案足以让我们从头开始训练深度网络。在2014年，batch normalization [2][2] 开始允许更深的网络，从2015年末我们可以使用残差学习随意从头训练深度网络[3][3]。
 
 如今自编码器的两个有趣的实际应用是**数据去噪**(本文后续会说)，和用于**数据可视化的降维**。有了合适的维度和稀疏性限制，自编码器可以学习数据投影，它比PCA或者其它基本的技术更有趣。
 
@@ -90,7 +90,7 @@ For 2D visualization specifically, t-SNE (pronounced "tee-snee") is probably the
 	    ax.get_yaxis().set_visible(False)
 	plt.show()
 最终经过压缩再解压后的图片效果如下：
-![][image-1]     
+![][image-1]  
  
 ## Adding a sparsity constraint on the encoded representations
 在前面的例子中，编码表示只受到隐藏层大小(32)的限制。在这样的情况下，隐藏层做的事情是学习PCA的近似表示。另一种限制表示被压缩的方法是对隐藏层表示的行为加入稀疏性限制，在给定的时刻只有少数的单元被启动。在Keras，可以通过在Dense 层加入 activity\_regularizer 做到：\_
@@ -178,13 +178,207 @@ They look pretty similar to the previous model, the only significant difference 
 	    ax.get_yaxis().set_visible(False)
 	plt.show()
 
-注意，由于构建了深度解码器，在单独构建解码器的时候，不能再取最后一层作为解码器了，因为此时最后一层的输入是128维，而此时encoding dim是32维，所以程序会报错，具体可以参考[stack overflow上的回答][1]，开始我也犯了同样的错误。
+注意，由于构建了深度解码器，在单独构建解码器的时候，不能再取最后一层作为解码器了，因为此时最后一层的输入是128维，而此时encoding dim是32维，所以程序会报错，具体可以参考[stack overflow上的回答][4]，开始我也犯了同样的错误。
 最终经过压缩和解压后的图像如下：
 ![][image-3]
 
+## Convolutional autoencoder
+由于我们的输入是图像，使用卷积神经网络作为编码器和解码器是合理的。在实际的场景中，应用在图像上的自编码器通常是卷积自编码器，它们很容易表现地更好。
 
+让我们实现一个。编码器将由Convolution2D 和 MaxPooling2D (max pooling being used for spatial down-sampling) 层堆叠组成，解码器将由Convolution2D 和 UpSampling2D 层堆叠成。
+	#coding:utf-8
+	import numpy as np
+	from keras.layers import Input, Dense, Convolution2D, MaxPooling2D, UpSampling2D
+	from keras.models import Model
+	from keras.datasets import mnist
+	
+	input_img = Input(shape=(1, 28, 28))
+	x = Convolution2D(16, 3, 3, activation='relu', border_mode='same')(input_img)
+	x = MaxPooling2D((2, 2), border_mode='same')(x)
+	x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
+	x = MaxPooling2D((2, 2), border_mode='same')(x)
+	x = Convolution2D(8 ,3, 3, activation='relu', border_mode='same')(x)
+	encoded = MaxPooling2D((2,2), border_mode='same')(x)
+	
+	x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(encoded)
+	x = UpSampling2D((2,2))(x)
+	x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
+	x = UpSampling2D((2,2))(x)
+	x = Convolution2D(16, 3, 3, activation='relu')(x)
+	x = UpSampling2D((2,2))(x)
+	decoded = Convolution2D(1, 3, 3, activation='sigmoid', border_mode='same')(x)
+	
+	autoencoder = Model(input_img, decoded)
+	autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
+	
+	(x_train, _), (x_test, _) = mnist.load_data()
+	
+	x_train = x_train.astype('float32') / 255.
+	x_test = x_test.astype('float32') / 255.
+	x_train = np.reshape(x_train, (len(x_train), 1, 28, 28))
+	x_test = np.reshape(x_test, (len(x_test), 1, 28, 28))
+
+为了说明如何可视化训练过程中模型的结果，我们将使用TensorFlow backendand 和 TensorBoard callback。
+
+首先打开终端，然后开启TensorBoard服务器，它会从你指定的文件夹读取日志。
+
+	tensorboard --logdir=/Users/lyj/DeepLearning/tmp/autoencoder
+
+然后训练模型，在callbacks列表中，我们传递一个TensorBoard callback实例。每一轮迭代过后，该callback会把日志写入你指定的文件夹，然后它会被TensorBoard服务器读取。
+
+	from keras.callbacks import TensorBoard
+	autoencoder.fit(x_train, x_train, nb_epoch=50, batch_size=128, shuffle=True,validation_data=(x_test, x_test),
+	                 callbacks=[TensorBoard(log_dir='/Users/lyj/DeepLearning/tmp/autoencoder')])
+这里需要注意，Keras默认是把then当作后端的，如果我们要用TensorBoard，需要把后端改成tensorflow，具体见[http://keras-cn.readthedocs.io/en/latest/backend/][5]。
+
+我们可以在TensorBoard 页面监控训练(通过http://0.0.0.0:6006 网址)：
+
+模型收敛时损失为0.094，比我们前面的模型好得多(主要是因为编码表示的更大的熵能力，128维 vs 32维)。让我们看下重塑的数字：
+! [] (https://github.com/kiseliu/MarkDownPictures/blob/master/dl/%E5%8D%B7%E7%A7%AF%E8%87%AA%E7%BC%96%E7%A0%81.png)
+我们也看一下128维的编码表示，这些表示是8x4x4的，所以可以把它们转变成4x32大小，然后用灰度图像展示出来。
+
+## Application to image denoising
+让我们把卷积自编码器用在图像去噪问题上，这非常简单，我们会训练自编码器，然后把噪音数字图像映射到干净的数字图像。
+
+现在让我们产生合成噪音数字：我们只需要应用高斯噪音矩阵，然后clip0～1之间的图像。
+
+	#coding:utf-8
+	import numpy as np
+	import matplotlib.pyplot as plt
+	from keras.layers import Input, Dense, Convolution2D, MaxPooling2D, UpSampling2D
+	from keras.models import Model
+	from keras.datasets import mnist
+	
+	input_img = Input(shape=(1, 28, 28))
+	
+	x = Convolution2D(16, 3, 3, activation='relu', border_mode='same')(input_img)
+	x = MaxPooling2D((2, 2), border_mode='same')(x)
+	x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
+	x = MaxPooling2D((2, 2), border_mode='same')(x)
+	x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
+	encoded = MaxPooling2D((2, 2), border_mode='same')(x)
+	
+	encoder = Model(input_img, x)
+	# at this point the representation is (8, 4, 4) i.e. 128-dimensional
+	
+	x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(encoded)
+	x = UpSampling2D((2, 2))(x)
+	x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
+	x = UpSampling2D((2, 2))(x)
+	x = Convolution2D(16, 3, 3, activation='relu')(x)
+	x = UpSampling2D((2, 2))(x)
+	decoded = Convolution2D(1, 3, 3, activation='sigmoid', border_mode='same')(x)
+	
+	autoencoder = Model(input_img, decoded)
+	autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
+	
+	(x_train, _), (x_test, _) = mnist.load_data()
+	
+	x_train = x_train.astype('float32') / 255.
+	x_test = x_test.astype('float32') / 255.
+	x_train = np.reshape(x_train, (len(x_train), 1, 28, 28))
+	x_test = np.reshape(x_test, (len(x_test), 1, 28, 28))
+	
+	noise_factor = 0.5
+	x_train_noisy = x_train + noise_factor * np.random.normal(loc=0.0, scale=1.0, size=x_train.shape)
+	x_test_noisy = x_test + noise_factor * np.random.normal(loc=0.0, scale=1.0, size=x_test.shape)
+	
+	x_train_noisy = np.clip(x_train_noisy, 0., 1.)
+	x_test_noisy = np.clip(x_test_noisy, 0., 1.)
+	
+	n = 10
+	plt.figure(figsize=(20, 2))
+	for i in range(n):
+	    ax = plt.subplot(1, n, i+1)
+	    plt.imshow(x_test_noisy[i].reshape(28, 28))
+	    plt.gray()
+	    ax.get_xaxis().set_visible(False)
+	    ax.get_yaxis().set_visible(False)
+	plt.show()
+下面是噪音数字的样子：
+! [] (https://github.com/kiseliu/MarkDownPictures/blob/master/dl/%E5%99%AA%E9%9F%B3%E6%95%B0%E5%AD%97.png)
+
+如果你仔细看仍然能认出他们，但是很难。我们的自编码器能够恢复原始的数字吗？让我们看看。
+
+和前面的卷积自编码器相比，为了提高重构的质量，我们用一个稍微不同的模型，它的每层都有更多的过滤：
+
+	#coding:utf-8
+	import numpy as np
+	import matplotlib.pyplot as plt
+	from keras.layers import Input, Dense, Convolution2D, MaxPooling2D, UpSampling2D
+	from keras.models import Model
+	from keras.datasets import mnist
+	from keras.callbacks import TensorBoard
+	
+	input_img = Input(shape=(1, 28, 28))
+	
+	x = Convolution2D(32, 3, 3, activation='relu', border_mode='same')(input_img)
+	x = MaxPooling2D((2, 2), border_mode='same')(x)
+	x = Convolution2D(32, 3, 3, activation='relu', border_mode='same')(x)
+	encoded = MaxPooling2D((2, 2), border_mode='same')(x)
+	
+	encoder = Model(input_img, x)
+	# at this point the representation is (32, 7, 7) 
+	
+	x = Convolution2D(32, 3, 3, activation='relu', border_mode='same')(encoded)
+	x = UpSampling2D((2, 2))(x)
+	x = Convolution2D(32, 3, 3, activation='relu', border_mode='same')(x)
+	x = UpSampling2D((2, 2))(x)
+	decoded = Convolution2D(1, 3, 3, activation='sigmoid', border_mode='same')(x)
+	
+	autoencoder = Model(input_img, decoded)
+	autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
+	
+	(x_train, _), (x_test, _) = mnist.load_data()
+	
+	x_train = x_train.astype('float32') / 255.
+	x_test = x_test.astype('float32') / 255.
+	x_train = np.reshape(x_train, (len(x_train), 1, 28, 28))
+	x_test = np.reshape(x_test, (len(x_test), 1, 28, 28))
+	
+	noise_factor = 0.5
+	x_train_noisy = x_train + noise_factor * np.random.normal(loc=0.0, scale=1.0, size=x_train.shape)
+	x_test_noisy = x_test + noise_factor * np.random.normal(loc=0.0, scale=1.0, size=x_test.shape)
+	
+	x_train_noisy = np.clip(x_train_noisy, 0., 1.)
+	x_test_noisy = np.clip(x_test_noisy, 0., 1.)
+	
+	autoencoder.fit(x_train_noisy, x_train,
+	                nb_epoch=100,
+	                batch_size=128,
+	                shuffle=True,
+	                validation_data=(x_test_noisy, x_test),
+	                callbacks=[TensorBoard(log_dir='/Users/lyj/DeepLearning/tmp/convolutionalantuencoder', histogram_freq=0, write_graph=False)])
+	decoded_imgs = autoencoder.predict(x_test_noisy)
+	
+	n = 10
+	plt.figure(figsize=(20, 4))
+	for i in range(n):
+	    # display original
+	    ax = plt.subplot(2, n, i+1)
+	    plt.imshow(x_test_noisy[i].reshape(28, 28))
+	    plt.gray()
+	    ax.get_xaxis().set_visible(False)
+	    ax.get_yaxis().set_visible(False)
+	
+	    # display reconstruction
+	    ax = plt.subplot(2, n, i + 1 + n)
+	    plt.imshow(decoded_imgs[i].reshape(28, 28))
+	    plt.gray()
+	    ax.get_xaxis().set_visible(False)
+	    ax.get_yaxis().set_visible(False)
+	plt.show()
+
+现在我们看一看结果。digits are reconstructed by the network. 上面是我们喂给网络的噪音数字，下面是卷积自编码器网络重构的数字。
+
+看起来该网络工作的很好。如果你使用更大的卷积网络，你可以开始构建文档去噪或者音频去噪模型。[ Kaggle has an interesting dataset to get you started.][6]
 
 [1]:	https://stackoverflow.com/questions/37758496/python-keras-theano-wrong-dimensions-for-deep-autoencoder
+[2]:	https://stackoverflow.com/questions/37758496/python-keras-theano-wrong-dimensions-for-deep-autoencoder
+[3]:	http://keras-cn.readthedocs.io/en/latest/backend/
+[4]:	https://stackoverflow.com/questions/37758496/python-keras-theano-wrong-dimensions-for-deep-autoencoder
+[5]:	http://keras-cn.readthedocs.io/en/latest/backend/
+[6]:	https://www.kaggle.com/
 
 [image-1]:	https://github.com/kiseliu/MarkDownPictures/blob/master/dl/%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8.png
 [image-2]:	https://github.com/kiseliu/MarkDownPictures/blob/master/dl/%E7%A8%80%E7%96%8F%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8.png
