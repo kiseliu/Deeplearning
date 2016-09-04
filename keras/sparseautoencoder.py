@@ -10,11 +10,11 @@ encoding_dim = 32  #即编码的大小，假设输入是784 floats，那么32 fl
 
 #建立自编码器模型
 input_img = Input(shape=(784,))  # this is our input placeholder
-<<<<<<< HEAD
+
 encoded = Dense(encoding_dim, activation='relu', activity_regularizer=regularizers.activity_l1(10e-7))(input_img)  # "encoded" 是输入的编码表示
-=======
+
 encoded = Dense(encoding_dim, activation='relu', activity_regularizer=regularizers.activity_l1(10e-7))(input_img)  # "encoded" 是输入的编码表示，系数是－7次才能得到官方示例的结果
->>>>>>> 0c37b8a6d4351f342c807317e1050280ea0c6145
+
 decoded = Dense(784, activation='sigmoid')(encoded)   # "decoded" 是输入的有损失的重构
 autoencoder = Model(input=input_img, output=decoded)   # 把输入映射到它的重构上
 
